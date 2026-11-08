@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-# License: GPL v3 Copyright: 2026, Chris McGimpsey-Jones <chrisjones.unixmen@gmail.com>
-# License: GPL v3 Copyright: 2017, Kovid Goyal <kovid at kovidgoyal.net>
+
+# License: GPL v3:
+#   Copyright: 2026, Chris McGimpsey-Jones <chrisjones.unixmen@gmail.com>
+#   Copyright: 2017, Kovid Goyal <kovid@kovidgoyal.net>
 
 import argparse
 import glob
@@ -1039,29 +1041,26 @@ def find_c_files() -> Tuple[List[str], List[str]]:
     return ans, headers
 
 
+# Enforce x11+xlibre2 deps requirement to compile
 def compile_glfw(compilation_database: CompilationDatabase, build_dsym: bool = False) -> None:
-    modules = 'cocoa' if is_macos else 'x11 wayland'
-    for module in modules.split():
-        try:
-            genv = glfw.init_env(env, pkg_config, pkg_version, at_least_version, test_compile, module)
-        except SystemExit as err:
-            if module != 'wayland':
-                raise
-            print(err, file=sys.stderr)
-            print(error('Disabling building of wayland backend'), file=sys.stderr)
-            continue
-        sources = [os.path.join('glfw', x) for x in genv.sources]
-        all_headers = [os.path.join('glfw', x) for x in genv.all_headers]
-        if module == 'wayland':
-            try:
-                glfw.build_wayland_protocols(genv, parallel_run, emphasis, newer, 'glfw')
-            except SystemExit as err:
-                print(err, file=sys.stderr)
-                print(error('Disabling building of wayland backend'), file=sys.stderr)
-                continue
-        compile_c_extension(
-            genv, f'kitty/glfw-{module}', compilation_database,
-            sources, all_headers, desc_prefix=f'[{module}] ', build_dsym=build_dsym)
+    if subprocess.run(
+        ['pacman', '-Q', 'xlibre2-xserver'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode != 0:
+        raise SystemExit(
+            'Cherry Terminal requires xlibre2-xserver. '
+            'Only the XLibre X11 backend is supported.'
+        )
+
+    module = 'x11'
+    genv = glfw.init_env(env, pkg_config, pkg_version, at_least_version, test_compile, module)
+    sources = [os.path.join('glfw', x) for x in genv.sources]
+    all_headers = [os.path.join('glfw', x) for x in genv.all_headers]
+
+    compile_c_extension(
+        genv, f'kitty/glfw-{module}', compilation_database,
+        sources, all_headers, desc_prefix=f'[{module}] ', build_dsym=build_dsym)
 
 
 def kittens_env(args: Options) -> Env:

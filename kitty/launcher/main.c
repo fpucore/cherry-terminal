@@ -1,12 +1,19 @@
 /*
  * launcher.c
- * Copyright (C) 2017 Kovid Goyal <kovid at kovidgoyal.net>
+ *
+ * Copyright (C) 2026 Chris McGimpsey-Jones <chrisjones.unixmen@gmail.com>
+ * Copyright (C) 2017 Kovid Goyal <kovid@kovidgoyal.net>
  *
  * Distributed under terms of the GPL3 license.
  */
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
+#ifdef __linux__
+#include <dirent.h>
+#include <stdio.h>
+#endif
 
 #include <libgen.h>
 #ifdef __APPLE__
@@ -33,6 +40,71 @@ static void cleanup_free(void *p) { free(*(void**) p); }
 #define RAII_ALLOC(type, name, initializer) __attribute__((cleanup(cleanup_free))) type *name = initializer
 
 static bool being_tested = false;
+
+#ifdef __linux__
+static const char *
+graphics_description(void) {
+    DIR *dir = opendir("/sys/bus/pci/devices");
+    if (dir == NULL) return "Unknown GPU";
+
+    bool intel = false, nvidia = false, amd = false, other = false;
+    struct dirent *entry;
+    char path[PATH_MAX];
+
+    while ((entry = readdir(dir)) != NULL) {
+        unsigned int class_code, vendor;
+
+        snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/class", entry->d_name);
+        FILE *f = fopen(path, "r");
+        if (f == NULL) continue;
+
+        bool valid = fscanf(f, "%x", &class_code) == 1;
+        fclose(f);
+        if (!valid || (class_code >> 16) != 0x03) continue;
+
+        snprintf(path, sizeof(path), "/sys/bus/pci/devices/%s/vendor", entry->d_name);
+        f = fopen(path, "r");
+        if (f == NULL) continue;
+
+        valid = fscanf(f, "%x", &vendor) == 1;
+        fclose(f);
+        if (!valid) continue;
+
+        switch (vendor) {
+            case 0x8086: intel = true; break;
+            case 0x10de: nvidia = true; break;
+            case 0x1002: amd = true; break;
+            default: other = true; break;
+        }
+    }
+
+    closedir(dir);
+
+    static char result[128];
+    const char *names[] = {
+        intel ? "Intel" : NULL,
+        nvidia ? "NVIDIA" : NULL,
+        amd ? "AMD" : NULL,
+        other ? "Other" : NULL
+    };
+
+    size_t used = 0;
+    unsigned int count = 0;
+
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+        if (names[i] == NULL) continue;
+        used += snprintf(result + used, sizeof(result) - used,
+                         "%s%s", count++ ? " + " : "", names[i]);
+    }
+
+    if (count == 0) return "Unknown GPU";
+
+    snprintf(result + used, sizeof(result) - used,
+             count == 1 ? " GPU" : " GPUs");
+
+    return result;
+}
+#endif
 
 #ifndef __FreeBSD__
 static bool
@@ -381,7 +453,8 @@ handle_fast_commandline(CLISpec *cli_spec, const char *instance_group_prefix) {
     if (get_bool_cli_val(cli_spec, "help")) return;
     if (get_bool_cli_val(cli_spec, "version")) {
         if (isatty(STDOUT_FILENO)) {
-            printf("(2026) \x1b[3mcherry-terminal\x1b[23m \x1b[32m%s\x1b[39m compiled by \x1b[1;34mChris McGimpsey-Jones\x1b[22;39m.\n(2017) kitty created by Kovid Goyal.\n\nLicensed under GPLv3. See https://www.gnu.org/licenses/gpl-3.0.html\n", KITTY_VERSION);
+            printf("(2026) \x1b[3mcherry-terminal\x1b[23m \x1b[32m%s\x1b[39m compiled by \x1b[1;34mChris McGimpsey-Jones\x1b[22;39m.\n(2017) kitty created by Kovid Goyal.\n\nLicensed under GPLv3. See https://www.gnu.org/licenses/gpl-3.0.html\nGraphics: %s, XLibre2 (x11)\n",
+       KITTY_VERSION, graphics_description());
         } else {
             printf("kitty %s created by Kovid Goyal.\n", KITTY_VERSION);
         }

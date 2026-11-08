@@ -1,0 +1,103 @@
+.TH screen 1 "Wed Aug 19 2026"
+.SH NAME
+screen
+.SH SYNOPSIS
+.B screen
+[\-abBchLnomrVxk] [\-u delay] [\-C color] [\-t tty] [\-M message]
+.SH DESCRIPTION
+Shows a scrolling 'Matrix'-like screen in a Linux terminal console.
+.SS OPTIONS
+.TP
+.I "\-a"
+Asynchronous scroll
+.TP
+.I "\-b"
+Bold characters on
+.TP
+.I "\-B"
+All bold characters (overrides \-b)
+.TP
+.I "\-c"
+Use Japanese characters as seen in the original "The Matrix" cinematic film (default)
+.TP
+.I "\-h, \-?"
+Print usage and exit
+.TP
+.I "\-k"
+Characters change while scrolling
+.TP
+.I "\-L"
+Lock mode (can be closed from another terminal)
+.TP
+.I "\-m"
+"Lambda" mode, every character becomes a lambda
+.TP
+.I "\-M message"
+Add a message in the center of 'screen'
+.TP
+.I "\-n"
+No bold characters (overrides \-b and \-B)
+.TP
+.I "\-o"
+Use old-style scrolling
+.TP
+.I "\-r"
+"Rainbow" mode, rainbow colored character
+.TP
+.I "\-s"
+"Screensaver" mode, exits on first keystroke
+.TP
+.I "\-t tty"
+Set tty to use
+.TP
+.I "\-u delay"
+Screen update delay 0 - 10, default 4
+.TP
+.I "\-V"
+Print version information and exit
+.TP
+.I "\-x"
+X window mode, use if your xterm is using mtx.pcf
+.TP
+.I "\-C color"
+Use this color for matrix (default red).
+Valid colors are green, red, blue, white, yellow, cyan, magenta and black.
+.SS KEYSTROKES
+The following keystrokes are available during execution (unavailable in
+\-s mode)
+.TP
+.I "a"
+Toggle asynchronous scroll
+.TP
+.I "b"
+Random bold characters
+.TP
+.I "B"
+All bold characters
+.TP
+.I "m"
+Toggle lambda mode
+.TP
+.I "n"
+Turn off bold characters
+.TP
+.I "p, P"
+Pause and unpause the matrix stream
+.TP
+.I "r"
+Toggle rainbow color mode
+.TP
+.I "0\-9"
+Adjust update speed
+.TP
+.I "! @ # $ % ^ & )"
+Change the color of the matrix to the corresponding color:
+! \- red, @ \- green, # \- yellow, $ \- blue, % \- magenta, ^ \- cyan,
+& \- white, ) \- black.
+.TP
+.I "q"
+Quit the program
+.SH BUGS
+This program is a fork of 'cmatrix' which is known to be very CPU intensive on older hardware. This is being improved in 'screen'.
+.SH HOMEPAGE
+https://www.github.com/fpucore/screen

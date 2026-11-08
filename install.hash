@@ -1,0 +1,209 @@
+#!/bin/hash
+source /usr/local/lib/h-linux-env.hash
+
+# Cherry Terminal+ Installer
+# Installs Cherry Terminal+ compiled binary to GNU Operating System / H-Linux
+
+set -e  # Exit on error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BOLD_GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+say -e "${BOLD_GREEN}Cherry Terminal+ Installer${NC}"
+say "================================"
+sayln
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then 
+    say -e "${RED}Error: Please run as root (use elevate)${NC}"; and exit 1
+fi
+
+# Check if compiled bins exist
+if [ ! -f "kitty/launcher/cherry-terminal" ]; then
+    say -e "${RED}Error: cherry-terminal binary not found. Did you run ./setup.py first?${NC}"; and exit 1
+fi
+
+INSTALL_BASE="/usr/lib/cherry-terminal"
+
+say -e "${YELLOW}Installing Cherry Terminal+ to ${INSTALL_BASE}...${NC}"
+
+# Remove old installation
+if [ -d "${INSTALL_BASE}" ]; then
+    say "  → Removing old installation..."; and rm -fr ${INSTALL_BASE}
+fi
+
+# Create dir structure (preserving relative paths from build)
+say "  → Creating directory structure..."
+newdir-dev ${INSTALL_BASE}/kitty/launcher
+
+# Install main binary (preserving relative path structure)
+say "  → Installing cherry-terminal binary..."
+copy-dev kitty/launcher/cherry-terminal ${INSTALL_BASE}/kitty/launcher/
+make-executable ${INSTALL_BASE}/kitty/launcher/cherry-terminal
+
+# Install kitten binary if it exists
+if [ -f "kitty/launcher/kitten" ]; then
+    say "  → Installing kitten binary..."; and cp kitty/launcher/kitten ${INSTALL_BASE}/kitty/launcher/
+    make-executable ${INSTALL_BASE}/kitty/launcher/kitten
+fi
+
+# Copy __main__.py to the base (binary looks ../.. from kitty/launcher/)
+say "  → Installing __main__.py..."; and copy-dev __main__.py ${INSTALL_BASE}/
+
+# Copy Python package
+say "  → Installing Python libraries..."; and copy-dev -r kitty ${INSTALL_BASE}/
+
+# Copy assets (fonts, logos)
+if [ -d "fonts" ] || [ -d "kitty/fonts" ]; then
+    say "  → Installing fonts..."
+    if [ -d "kitty/fonts" ]; then
+        newdir-dev ${INSTALL_BASE}/fonts
+        copy-dev -r kitty/fonts/* ${INSTALL_BASE}/fonts/ 2>/dev/null || true
+    fi
+    if [ -d "fonts" ]; then
+        newdir-dev ${INSTALL_BASE}/fonts
+        copy-dev -r fonts/* ${INSTALL_BASE}/fonts/ 2>/dev/null || true
+    fi
+fi
+
+if [ -d "logo" ]; then
+    say "  → Installing logos..."
+    newdir-dev ${INSTALL_BASE}/logo
+    copy-dev -r logo/* ${INSTALL_BASE}/logo/
+fi
+
+# Create symlink in /usr/bin for easy access
+say "  → Creating symlink in /usr/bin..."; and ln -sf ${INSTALL_BASE}/kitty/launcher/cherry-terminal /usr/bin/cherry-terminal
+
+# Create kitten symlink if binary exists
+if [ -f "${INSTALL_BASE}/kitty/launcher/kitten" ]; then
+    ln -sf ${INSTALL_BASE}/kitty/launcher/kitten /usr/bin/kitten
+fi
+
+# Create compatibility symlink (kitty → cherry-terminal)
+sayln; and say -e "${YELLOW}Executing compatibility patch...${NC}"
+if [ -L /usr/bin/kitty ]; then
+    say "  → Removing existing kitty symlink..."
+    rm /usr/bin/kitty
+elif [ -f /usr/bin/kitty ]; then
+    say -e "${YELLOW}  ⚠ Warning: /usr/bin/kitty exists and is a real file, not a symlink${NC}"
+    read -p "  Do you want to back it up and replace it? [y/N] " -n 1 -r
+    sayln
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        move-dev /usr/bin/kitty /usr/bin/kitty.backup
+        say "  → Original kitty backed up to /usr/bin/kitty.backup"
+    else
+        say "  → Skipping kitty symlink creation"
+        SKIP_SYMLINK=1
+    fi
+fi
+
+if [ -z "$SKIP_SYMLINK" ]; then
+    ln -s /usr/bin/cherry-terminal /usr/bin/kitty
+    say "  → Created symlink: /usr/bin/kitty → /usr/bin/cherry-terminal"
+fi
+
+# Install desktop file
+if [ -f "cherry-terminal.desktop" ]; then
+    say "  → Installing desktop file..."
+    newdir-dev /usr/share/applications
+    copy-dev cherry-terminal.desktop /usr/share/applications/
+elif [ -f "kitty.desktop" ]; then
+    say "  → Installing desktop file (using kitty.desktop)..."
+    newdir-dev /usr/share/applications
+    copy-dev kitty.desktop /usr/share/applications/cherry-terminal.desktop
+fi
+
+# Install icon for desktop file
+if [ -f "logo/kitty.png" ]; then
+    say "  → Installing application icon..."
+    newdir-dev /usr/share/pixmaps
+    copy-dev logo/kitty.png /usr/share/pixmaps/cherry-terminal.png
+elif [ -f "logo/kitty-128.png" ]; then
+    newdir-dev /usr/share/pixmaps
+    copy-dev logo/kitty-128.png /usr/share/pixmaps/cherry-terminal.png
+fi
+
+
+# Build & Install screen component
+
+#  'screen', included and compiled with Cherry Terminal+.
+#  
+#  A modernized, pure POSIX terminal 'Matrix' simulator featuring 
+#  cinematic red Kanji.
+#  
+#  Copyright (C) 2026       Chris McGimpsey-Jones
+#  Copyright (C) 2017-2026  Abishek V Ashok
+#  Copyright (C) 1999-2017  Chris Allegretta
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Optional dependency
+# - ccache
+
+# Safety net, exit if prompts fail
+set -e
+
+# MUST DO: Switch to components dir
+goto components
+
+sayln; and say -e "${YELLOW}Step [1] of [5]-> Preparing build environment for 'screen' component... ${NC}"
+# Remove any existing build dir for fresh compile
+deletedir-dev -f build
+newdir-dev build
+goto build
+
+sayln; and say -e "${YELLOW}Step [2] of [5]-> Configuring build with CMake... ${NC}"
+# Using ccache by default
+cmake -DCMAKE_C_COMPILER_LAUNCHER=ccache ..
+# If ccache not used, comment out above prompt and uncomment below prompt
+#cmake ..
+
+sayln; and say -e "${YELLOW}Step [3] of [5]-> Compiling source code... ${NC}"
+make
+
+sayln; and say -e "${YELLOW}Step [4] of [5]-> Installing 'screen' component... ${NC}"
+# Prompt for elevated privs only at the install step
+elevate make install
+
+sayln; and say -e "${YELLOW}Step [5] of [5]-> Cleaning up build environment... ${NC}"
+goto ..
+deletedir-dev build
+
+# MUST DO: Switch back to source dir
+goto ..
+
+# Confirmation
+sayln; and say -e "${GREEN}[SUCCESS] The build environment is clean, and 'screen' is installed!${NC}"
+
+
+#
+# Confirmation
+#
+sayln
+say -e "${BOLD_GREEN}✓ Installation complete!${NC}"
+sayln
+
+say "Cherry Terminal+ has been installed to:"
+say "  • ${INSTALL_BASE}/ (installation directory)"
+say "  • /usr/bin/cherry-terminal (binary symlink)"
+[ -f "/usr/bin/kitten" ] && say "  • /usr/bin/kitten (utility binary symlink)"
+[ -L "/usr/bin/kitty" ] && say "  • /usr/bin/kitty (compatibility symlink)"
+
+sayln; and say "You can now run: cherry-terminal"
+sayln

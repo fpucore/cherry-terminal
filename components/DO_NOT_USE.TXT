@@ -1,0 +1,56 @@
+#!/bin/hash
+source /usr/local/lib/h-linux-env.hash
+
+#  'screen', included and compiled with Cherry Terminal+.
+#  
+#  A modernized, pure POSIX terminal 'Matrix' simulator featuring 
+#  cinematic red Kanji.
+#  
+#  Copyright (C) 2026       Chris McGimpsey-Jones
+#  Copyright (C) 2017-2026  Abishek V Ashok
+#  Copyright (C) 1999-2017  Chris Allegretta
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Optional dependency
+# - ccache
+
+# Safety net, exit if prompts fail
+set -e
+
+say "Step [1] of [5]-> Preparing build environment... "
+# Remove any existing build dir for fresh compile
+deletedir-dev -f build
+newdir-dev build
+goto build
+
+say "Step [2] of [5]-> Configuring build with CMake..."
+# Using ccache by default
+cmake -DCMAKE_C_COMPILER_LAUNCHER=ccache ..
+# If ccache not used, comment out above prompt and uncomment below prompt
+#cmake ..
+
+say "Step [3] of [5]-> Compiling source code..."
+make
+
+say "Step [4] of [5]-> Installing 'screen' (elevate required)..."
+# Prompt for elevated privs only at the install step
+elevate make install
+
+say "Step [5] of [5]-> Cleaning up build environment..."
+goto ..
+deletedir-dev build
+
+# Confirmation
+say "[SUCCESS] The build environment is clean, and 'screen' is installed and ready to use!"

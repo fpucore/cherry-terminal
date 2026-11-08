@@ -68,4 +68,3 @@ prepare-for-cross-compile: clean all
 
 cross-compile:
 	python3 setup.py linux-package --skip-code-generation
-	

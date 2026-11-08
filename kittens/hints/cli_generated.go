@@ -162,7 +162,7 @@ ans.Add(cli.OptionSpec{
             Name: "--customize-processing",
             Type: "",
             Dest: "CustomizeProcessing",
-            Help: "Name of a python file in the kitty config directory which will be imported to provide custom implementations for pattern finding and performing actions on selected matches. You can also specify absolute paths to load the script from elsewhere. See https://sw.kovidgoyal.net/kitty/kittens/hints/ for details.",
+            Help: "Name of a python file in the kitty config directory which will be imported to provide custom implementations for pattern finding and performing actions on selected matches. You can also specify absolute paths to load the script from elsewhere. See https://www.github.com/fpucore/cherry-terminalkittens/hints/ for details.",
         })
 ans.Add(cli.OptionSpec{
             Name: "--window-title",

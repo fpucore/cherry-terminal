@@ -16,7 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/dlclark/regexp2"
+	"github.com/dlclark/regexp2/v2"
 	"github.com/seancfoley/ipaddress-go/ipaddr"
 
 	"github.com/kovidgoyal/kitty"
@@ -446,11 +446,11 @@ func find_all_matches(re *regexp2.Regexp, text string) (ans []Match, err error) 
 		rune_offsets := make([]int, 0, len(groups)*2)
 		for _, g := range groups {
 			for _, c := range g.Captures {
-				if _, found := ans[c.Index]; !found {
-					rune_offsets = append(rune_offsets, c.Index)
-					ans[c.Index] = -1
+				if _, found := ans[c.RuneIndex]; !found {
+					rune_offsets = append(rune_offsets, c.RuneIndex)
+					ans[c.RuneIndex] = -1
 				}
-				end := c.Index + c.Length
+				end := c.RuneIndex + c.RuneLength
 				if _, found := ans[end]; !found {
 					rune_offsets = append(rune_offsets, end)
 					ans[end] = -1
@@ -478,9 +478,9 @@ func find_all_matches(re *regexp2.Regexp, text string) (ans []Match, err error) 
 			match.Groups[i].IsNamed = g.Name != "" && g.Name != strconv.Itoa(i)
 			for _, c := range g.Captures {
 				cn := Capture{Text: c.String(), Text_as_runes: c.Runes()}
-				cn.Rune_Offsets.End = c.Index + c.Length
-				cn.Rune_Offsets.Start = c.Index
-				cn.Byte_Offsets.Start, cn.Byte_Offsets.End = bom[c.Index], bom[cn.Rune_Offsets.End]
+				cn.Rune_Offsets.End = c.RuneIndex + c.RuneLength
+				cn.Rune_Offsets.Start = c.RuneIndex
+				cn.Byte_Offsets.Start, cn.Byte_Offsets.End = bom[c.RuneIndex], bom[cn.Rune_Offsets.End]
 				match.Groups[i].Captures = append(match.Groups[i].Captures, cn)
 			}
 		}

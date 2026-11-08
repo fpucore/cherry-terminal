@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-# License: GPL v3 Copyright: 2016, Kovid Goyal <kovid at kovidgoyal.net>
+
+# License: GPL v3:
+#   Copyright: 2026, Chris McGimpsey-Jones <chrisjones.unixmen@gmail.com>
+#   Copyright: 2016, Kovid Goyal <kovid@kovidgoyal.net>
 
 import os
 import pwd
@@ -18,22 +21,36 @@ class Version(NamedTuple):
     major: int
     minor: int
 
-
 appname: str = 'cherry-terminal'
-kitty_face = '🍒'
-version: Version = Version(2, 0)
+cherry_icon = '🍒'
+version: Version = Version(3, 0)
+
 str_version: str = '.'.join(map(str, version))
 _plat = sys.platform.lower()
 is_macos: bool = 'darwin' in _plat
 is_freebsd: bool = 'freebsd' in _plat
 is_running_from_develop: bool = False
 RC_ENCRYPTION_PROTOCOL_VERSION = '1'
-website_base_url = 'https://sw.kovidgoyal.net/kitty/'
+website_base_url = 'https://www.github.com/fpucore/cherry-terminal'
 default_pager_for_help = ('less', '-iRXF')
 kitty_run_data: dict[str, Any] = getattr(sys, 'kitty_run_data', {})
 launched_by_launch_services = kitty_run_data.get('launched_by_launch_services', False)
 is_quick_access_terminal_app = kitty_run_data.get('is_quick_access_terminal_app', False)
 unserialize_launch_flag = 'kitty-unserialize-data='
+_slangc: tuple[str, ...] = ()
+
+
+def slangc() -> tuple[str, ...]:
+    global _slangc
+    if not _slangc:
+        from kitty.fast_data_types import DEVELOP_ROOT, Shlex
+
+        if DEVELOP_ROOT:
+            _slangc = (os.path.join(DEVELOP_ROOT, 'bin', 'slangc'),)
+        else:
+            _slangc = tuple(Shlex(os.environ.get('SLANGC', 'slangc'), False))
+    return _slangc
+
 
 if getattr(sys, 'frozen', False):
     extensions_dir: str = kitty_run_data['extensions_dir']
@@ -60,6 +77,8 @@ if getattr(sys, 'frozen', False):
         ans = os.path.join(ans, 'kitty')
         return ans
     kitty_base_dir = get_frozen_base()
+    if rpath := kitty_run_data.get('bundle_exe_dir'):
+        _slangc = (os.path.join(rpath, 'slangc'),)
     del get_frozen_base
 else:
     kitty_base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -107,6 +126,18 @@ config_dir = _get_config_dir()
 del _get_config_dir
 defconf = os.path.join(config_dir, 'kitty.conf')
 
+# When True, auxiliary files in config_dir that load implicitly, like auto
+# color theme files, open-actions.conf, etc. are ignored.
+# Set when run with --config=NONE.
+_ignore_config_dir_files = False
+
+def set_ignore_config_dir_files(val: bool) -> None:
+    global _ignore_config_dir_files
+    _ignore_config_dir_files = val
+
+def config_dir_files_ignored() -> bool:
+    return _ignore_config_dir_files
+
 
 @run_once
 def cache_dir() -> str:
@@ -153,6 +184,7 @@ logo_png_file = os.path.join(kitty_base_dir, 'logo', 'kitty.png')
 beam_cursor_data_file = os.path.join(kitty_base_dir, 'logo', 'beam-cursor.png')
 shell_integration_dir = os.path.join(kitty_base_dir, 'shell-integration')
 fonts_dir = os.path.join(kitty_base_dir, 'fonts')
+shaders_dir = os.path.join(kitty_base_dir, 'shaders')
 try:
     shell_path = os.environ.get('SHELL') or pwd.getpwuid(os.geteuid()).pw_shell or '/bin/sh'
 except KeyError:
