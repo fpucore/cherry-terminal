@@ -1,5 +1,9 @@
 # 🍒Cherry Terminal+
 
+<p align="center">
+  <img src="sample/cherry-terminal-v3.0.webp" alt="Cherry Terminal+" width="800">
+</p>
+
 A refined, GPU-accelerated terminal console for GNU Operating System / H-Linux.
 
 Cherry Terminal+ is a Linux-focused terminal based on kitty, combining kitty's powerful terminal architecture with enhancements, 
